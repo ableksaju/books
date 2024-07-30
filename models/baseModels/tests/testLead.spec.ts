@@ -31,13 +31,20 @@ test('create test docs for Lead', async (t) => {
 test('create Customer', async (t) => {
   const leadDoc = (await fyo.doc.getDoc(ModelNameEnum.Lead, 'name2')) as Lead;
 
-  let customerDoc = (await leadDoc?.getCustomerDoc()) as Lead;
+  const newPartyDoc = fyo.doc.getNewDoc(ModelNameEnum.Party, {
+    ...leadDoc.getValidDict(),
+    fromLead: leadData.name,
+    role: 'Customer',
+    phone: leadData.mobile as string,
+  });
+
   t.equals(
     leadDoc.status,
     'Open',
     'Before Customer created the status must be Open'
   );
-  await customerDoc.sync();
+  let x = await newPartyDoc.sync()
+
 
   t.equals(
     leadDoc.status,
@@ -46,7 +53,7 @@ test('create Customer', async (t) => {
   );
 
   t.ok(
-    await fyo.db.exists(ModelNameEnum.Party, customerDoc.name),
+    await fyo.db.exists(ModelNameEnum.Party, newPartyDoc.name),
     'Customer created from Lead'
   );
 });
@@ -62,14 +69,27 @@ test('create test docs for Item', async (t) => {
 
 test('create SalesQuote', async (t) => {
   const leadDoc = (await fyo.doc.getDoc(ModelNameEnum.Lead, 'name2')) as Lead;
-  let salesQuoteDocmerDoc = (await leadDoc?.getSalesQuoteDoc(itemData)) as Lead;
+  const docData = leadDoc.getValidDict(true, true);
+
+  const newSalesQuoteDoc = fyo.doc.getNewDoc(ModelNameEnum.SalesQuote, {
+    ...docData,
+    party: docData.name,
+    referenceType: ModelNameEnum.Lead,
+    items: [
+      {
+        item: itemData.name,
+        rate: itemData.rate,
+      },
+    ],
+  }) as Lead;
+
   t.equals(
     leadDoc.status,
     'Converted',
     'Before SalesQuote created the status must be Open'
   );
-  await salesQuoteDocmerDoc.sync();
-  await salesQuoteDocmerDoc.submit();
+  await newSalesQuoteDoc.sync();
+  await newSalesQuoteDoc.submit();
 
   t.equals(
     leadDoc.status,
@@ -78,7 +98,7 @@ test('create SalesQuote', async (t) => {
   );
 
   t.ok(
-    await fyo.db.exists(ModelNameEnum.SalesQuote, salesQuoteDocmerDoc.name),
+    await fyo.db.exists(ModelNameEnum.SalesQuote, newSalesQuoteDoc.name),
     'SalesQuote Created from Lead'
   );
 });
