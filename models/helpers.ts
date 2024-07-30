@@ -20,7 +20,7 @@ import { Invoice } from './baseModels/Invoice/Invoice';
 import { SalesQuote } from './baseModels/SalesQuote/SalesQuote';
 import { StockMovement } from './inventory/StockMovement';
 import { StockTransfer } from './inventory/StockTransfer';
-import { InvoiceStatus, LeadStatuses, ModelNameEnum } from './types';
+import { InvoiceStatus, ModelNameEnum } from './types';
 import { Lead } from './baseModels/Lead/Lead';
 
 export function getQuoteActions(
@@ -28,6 +28,10 @@ export function getQuoteActions(
   schemaName: ModelNameEnum.SalesQuote
 ): Action[] {
   return [getMakeInvoiceAction(fyo, schemaName)];
+}
+
+export function getLeadActions(fyo: Fyo): Action[] {
+  return [getCreateCustomerAction(fyo), getSalesQuoteAction(fyo)];
 }
 
 export function getInvoiceActions(
@@ -111,6 +115,43 @@ export function getMakeInvoiceAction(
       const { routeTo } = await import('src/utils/ui');
       const path = `/edit/${invoice.schemaName}/${invoice.name}`;
       await routeTo(path);
+    },
+  };
+}
+
+export function getCreateCustomerAction(fyo: Fyo): Action {
+  return {
+    group: fyo.t`Create`,
+    label: fyo.t`Customer`,
+    action: async (doc: Doc, router) => {
+      const lead = fyo.doc.getNewDoc(ModelNameEnum.Party, {
+        ...doc.getValidDict(),
+        fromLead: doc.name,
+        phone: doc.mobile as string,
+        role: 'Customer',
+      });
+      if (!lead.name) {
+        return;
+      }
+      await router.push(`/edit/Party/${lead.name}`);
+    },
+  };
+}
+
+export function getSalesQuoteAction(fyo: Fyo): Action {
+  return {
+    group: fyo.t`Create`,
+    label: fyo.t`Sales Quote`,
+    action: async (doc, router) => {
+      const data: { party: string | undefined; referenceType: string } = {
+        party: doc.name,
+        referenceType: 'Lead',
+      };
+      const lead = fyo.doc.getNewDoc(ModelNameEnum.SalesQuote, data);
+      if (!lead.name) {
+        return;
+      }
+      await router.push(`/edit/SalesQuote/${lead.name}`);
     },
   };
 }
@@ -242,8 +283,8 @@ export function getLeadStatusColumn(): ColumnConfig {
     fieldname: 'status',
     fieldtype: 'Select',
     render(doc) {
-      const status = getLeadStatus(doc) as LeadStatuses;
-      const color = statusColorForLead[status] ?? 'gray';
+      const status = getLeadStatus(doc) as LeadStatus;
+      const color = statusColor[status] ?? 'gray';
       const label = getStatusTextOfLead(status);
 
       return {
@@ -274,16 +315,6 @@ export const statusColor: Record<
   DonotContact: 'red',
   Return: 'green',
   ReturnIssued: 'green',
-};
-export const statusColorForLead: Record<LeadStatus, string | undefined> = {
-  '': 'gray',
-  Open: 'gray',
-  Replied: 'yellow',
-  Opportunity: 'yellow',
-  Converted: 'green',
-  Quotation: 'green',
-  Interested: 'yellow',
-  DonotContact: 'red',
 };
 
 export function getStatusText(status: DocStatus | InvoiceStatus): string {
@@ -335,7 +366,7 @@ export function getStatusTextOfLead(status: LeadStatus): string {
 export function getLeadStatus(
   doc?: Lead | Doc | RenderData
 ): LeadStatus | DocStatus {
-  if (!doc || !doc.status) {
+  if (!doc) {
     return '';
   }
 

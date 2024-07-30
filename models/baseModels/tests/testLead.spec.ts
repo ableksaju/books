@@ -43,9 +43,7 @@ test('create Customer', async (t) => {
     'Open',
     'Before Customer created the status must be Open'
   );
-  let x = await newPartyDoc.sync()
-
-
+  await newPartyDoc.sync();
   t.equals(
     leadDoc.status,
     'Converted',
