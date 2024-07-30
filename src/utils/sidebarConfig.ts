@@ -202,6 +202,12 @@ function getCompleteSidebar(): SidebarConfig {
           schemaName: 'Item',
           filters: routeFilters.SalesItems,
         },
+        {
+          label: t`Lead`,
+          name: 'lead',
+          route: '/list/Lead',
+          schemaName: 'Lead',
+        },
       ] as SidebarItem[],
     },
     {
@@ -257,12 +263,6 @@ function getCompleteSidebar(): SidebarConfig {
           route: '/list/Party',
           schemaName: 'Party',
           filters: { role: 'Both' },
-        },
-        {
-          label: t`Lead`,
-          name: 'lead',
-          route: '/list/Lead',
-          schemaName: 'Lead',
         },
         {
           label: t`Items`,
