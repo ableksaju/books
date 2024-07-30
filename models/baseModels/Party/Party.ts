@@ -130,17 +130,18 @@ export class Party extends Doc {
 
   async afterDelete() {
     await super.afterDelete();
+    if (!this.fromLead) {
+      return;
+    }
     const leadData = await this.fyo.doc.getDoc(ModelNameEnum.Lead, this.name);
     await leadData.setAndSync('status', 'Interested');
   }
 
   async afterSync() {
     await super.afterSync();
-
     if (!this.fromLead) {
       return;
     }
-
     const leadData = await this.fyo.doc.getDoc(ModelNameEnum.Lead, this.name);
     await leadData.setAndSync('status', 'Converted');
   }

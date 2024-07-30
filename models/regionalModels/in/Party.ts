@@ -19,8 +19,6 @@ export class Party extends BaseParty {
 
   hidden: HiddenMap = {
     gstin: () => (this.gstType as GSTType) !== 'Registered Regular',
-    fromLead: () => {
-      return this.fromLead ? false : true;
-    },
+    fromLead: () => !this.fromLead,
   };
 }

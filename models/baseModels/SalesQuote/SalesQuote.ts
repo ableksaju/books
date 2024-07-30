@@ -6,13 +6,17 @@ import { getQuoteActions, getTransactionStatusColumn } from '../../helpers';
 import { Invoice } from '../Invoice/Invoice';
 import { SalesQuoteItem } from '../SalesQuoteItem/SalesQuoteItem';
 import { Defaults } from '../Defaults/Defaults';
+import { Doc } from 'fyo/model/doc';
+import { Lead } from '../Lead/Lead';
 
 export class SalesQuote extends Invoice {
   items?: SalesQuoteItem[];
   party?: string;
   name?: string;
-  referenceType?: ModelNameEnum.SalesInvoice | ModelNameEnum.PurchaseInvoice;
-
+  referenceType?:
+    | ModelNameEnum.SalesInvoice
+    | ModelNameEnum.PurchaseInvoice
+    | ModelNameEnum.Lead;
   // This is an inherited method and it must keep the async from the parent
   // class
   // eslint-disable-next-line @typescript-eslint/require-await
@@ -51,12 +55,16 @@ export class SalesQuote extends Invoice {
     return invoice;
   }
 
-  static filters: FiltersMap = {};
+  static filters: FiltersMap = {
+    numberSeries: (doc: Doc) => ({ referenceType: doc.schemaName }),
+  };
 
   async afterSubmit(): Promise<void> {
     await super.afterSubmit();
-    const leadData = await this.fyo.doc.getDoc(ModelNameEnum.Lead, this.party);
-    await leadData.setAndSync('status', 'Quotation');
+    if (this.referenceType == ModelNameEnum.Lead) {
+      const leadData = (await this.loadAndGetLink('party')) as Lead;
+      await leadData.setAndSync('status', 'Quotation');
+    }
   }
 
   static getListViewSettings(): ListViewSettings {

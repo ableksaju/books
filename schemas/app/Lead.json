@@ -72,6 +72,5 @@
       "section": "Contacts"
     }
   ],
-  "quickEditFields": ["address"],
   "keywordFields": ["name", "email", "mobile"]
 }
