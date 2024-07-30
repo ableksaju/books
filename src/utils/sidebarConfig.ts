@@ -207,6 +207,7 @@ function getCompleteSidebar(): SidebarConfig {
           name: 'lead',
           route: '/list/Lead',
           schemaName: 'Lead',
+          hidden: () => !fyo.singles.AccountingSettings?.enableLead,
         },
       ] as SidebarItem[],
     },
