@@ -13,10 +13,12 @@ import {
 } from 'fyo/model/validationFunction';
 import { Money } from 'pesa';
 import { PartyRole } from './types';
+import { ModelNameEnum } from 'models/types';
 
 export class Party extends Doc {
   role?: PartyRole;
   defaultAccount?: string;
+  loyaltyPoints?: number;
   outstandingAmount?: Money;
   async updateOutstandingAmount() {
     /**
@@ -49,6 +51,34 @@ export class Party extends Doc {
     }
 
     await this.setAndSync({ outstandingAmount });
+  }
+
+  async updateLoyaltyPoints() {
+    const role = this.role as PartyRole;
+    let loyaltyPoints = 0;
+    if (role === 'Customer' || role === 'Both') {
+      loyaltyPoints = await this._getTotalLoyaltyPoints();
+    }
+    await this.setAndSync({ loyaltyPoints });
+  }
+
+  async _getTotalLoyaltyPoints() {
+    const data = (await this.fyo.db.getAll(ModelNameEnum.LoyaltyPointEntry, {
+      fields: ['name', 'loyaltyPoints', 'expiryDate'],
+      filters: {
+        customer: this.name as string,
+      },
+    })) as { name: string; loyaltyPoints: number; expiryDate: Date }[];
+
+    const today = new Date(Date.now());
+    const totalLoyaltyPoints = data.reduce((total, entry) => {
+      if (entry.expiryDate > today) {
+        return total + entry.loyaltyPoints;
+      }
+      return total;
+    }, 0);
+
+    return totalLoyaltyPoints;
   }
 
   async _getTotalOutstandingAmount(

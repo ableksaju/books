@@ -27,6 +27,7 @@ import { Tax } from '../Tax/Tax';
 import { TaxSummary } from '../TaxSummary/TaxSummary';
 import { ReturnDocItem } from 'models/inventory/types';
 import { AccountFieldEnum, PaymentTypeEnum } from '../Payment/types';
+import { LoyaltyProgram } from '../LoyaltyProgram/LoyaltyProgram';
 
 export type TaxDetail = {
   account: string;
@@ -60,6 +61,7 @@ export abstract class Invoice extends Transactional {
   discountPercent?: number;
   discountAfterTax?: boolean;
   stockNotTransferred?: number;
+  loyaltyProgram?: string;
   backReference?: string;
 
   submitted?: boolean;
@@ -166,12 +168,18 @@ export abstract class Invoice extends Transactional {
     await super.afterSubmit();
 
     // update outstanding amounts
+    if (this.schemaName === ModelNameEnum.SalesQuote) {
+      return;
+    }
     await this.fyo.db.update(this.schemaName, {
       name: this.name as string,
       outstandingAmount: this.baseGrandTotal!,
     });
 
-    const party = (await this.fyo.doc.getDoc('Party', this.party)) as Party;
+    const party = (await this.fyo.doc.getDoc(
+      ModelNameEnum.Party,
+      this.party
+    )) as Party;
     await party.updateOutstandingAmount();
 
     if (this.makeAutoPayment && this.autoPaymentAccount) {
@@ -189,6 +197,19 @@ export abstract class Invoice extends Transactional {
     }
 
     await this._updateIsItemsReturned();
+    if (this.loyaltyProgram) {
+      const doc = (await this.fyo.doc.getDoc(
+        ModelNameEnum.LoyaltyProgram,
+        this.loyaltyProgram
+      )) as LoyaltyProgram;
+      const currentDate = new Date(Date.now());
+      const fromDate = doc.fromDate as Date;
+      const toDate = doc.toDate as Date;
+      if (fromDate <= currentDate && toDate >= currentDate) {
+        await doc.createLoyaltyPointEntry(this);
+        await party.updateLoyaltyPoints();
+      }
+    }
   }
 
   async afterCancel() {
@@ -196,6 +217,19 @@ export abstract class Invoice extends Transactional {
     await this._cancelPayments();
     await this._updatePartyOutStanding();
     await this._updateIsItemsReturned();
+    await this._removeLoyaltyPointEntry();
+  }
+
+  async _removeLoyaltyPointEntry() {
+    if (!this.loyaltyProgram) {
+      return;
+    }
+    const loyaltyProgramDoc = (await this.fyo.doc.getDoc(
+      ModelNameEnum.LoyaltyProgram,
+      this.loyaltyProgram
+    )) as LoyaltyProgram;
+
+    await loyaltyProgramDoc.removeLoyaltyPoint(this);
   }
 
   async _cancelPayments() {
@@ -553,6 +587,17 @@ export abstract class Invoice extends Transactional {
       },
       dependsOn: ['party'],
     },
+    loyaltyProgram: {
+      formula: async () => {
+        const LoyaltyPointsData = await this.fyo.doc.getDoc(
+          ModelNameEnum.Party,
+          this.party
+        );
+        const loyaltyProgram = LoyaltyPointsData?.loyaltyProgram as string;
+        return loyaltyProgram ?? '';
+      },
+      dependsOn: ['party'],
+    },
     currency: {
       formula: async () => {
         const currency = (await this.fyo.getValue(
@@ -692,6 +737,7 @@ export abstract class Invoice extends Transactional {
       !(this.attachment || !(this.isSubmitted || this.isCancelled)),
     backReference: () => !this.backReference,
     quote: () => !this.quote,
+    loyaltyProgram: () => !this.loyaltyProgram,
     priceList: () =>
       !this.fyo.singles.AccountingSettings?.enablePriceList ||
       (!this.canEdit && !this.priceList),
