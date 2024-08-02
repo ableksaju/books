@@ -117,6 +117,7 @@ export type DocStatus =
   | 'NotSaved'
   | 'Submitted'
   | 'Cancelled';
+  
 export type LeadStatus =
   | ''
   | 'Open'

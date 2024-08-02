@@ -7,7 +7,7 @@ import { Invoice } from '../Invoice/Invoice';
 import { SalesQuoteItem } from '../SalesQuoteItem/SalesQuoteItem';
 import { Defaults } from '../Defaults/Defaults';
 import { Doc } from 'fyo/model/doc';
-import { Lead } from '../Lead/Lead';
+import { Party } from '../Party/Party';
 
 export class SalesQuote extends Invoice {
   items?: SalesQuoteItem[];
@@ -62,8 +62,8 @@ export class SalesQuote extends Invoice {
   async afterSubmit(): Promise<void> {
     await super.afterSubmit();
     if (this.referenceType == ModelNameEnum.Lead) {
-      const leadData = (await this.loadAndGetLink('party')) as Lead;
-      await leadData.setAndSync('status', 'Quotation');
+      const partyDoc = (await this.loadAndGetLink('party')) as Party;
+      await partyDoc.setAndSync('status', 'Quotation');
     }
   }
 

@@ -124,16 +124,16 @@ export function getCreateCustomerAction(fyo: Fyo): Action {
     group: fyo.t`Create`,
     label: fyo.t`Customer`,
     action: async (doc: Doc, router) => {
-      const lead = fyo.doc.getNewDoc(ModelNameEnum.Party, {
+      const partyDoc = fyo.doc.getNewDoc(ModelNameEnum.Party, {
         ...doc.getValidDict(),
         fromLead: doc.name,
         phone: doc.mobile as string,
         role: 'Customer',
       });
-      if (!lead.name) {
+      if (!partyDoc.name) {
         return;
       }
-      await router.push(`/edit/Party/${lead.name}`);
+      await router.push(`/edit/Party/${partyDoc.name}`);
     },
   };
 }
@@ -145,13 +145,13 @@ export function getSalesQuoteAction(fyo: Fyo): Action {
     action: async (doc, router) => {
       const data: { party: string | undefined; referenceType: string } = {
         party: doc.name,
-        referenceType: 'Lead',
+        referenceType: ModelNameEnum.Lead,
       };
-      const lead = fyo.doc.getNewDoc(ModelNameEnum.SalesQuote, data);
-      if (!lead.name) {
+      const salesQuoteDoc = fyo.doc.getNewDoc(ModelNameEnum.SalesQuote, data);
+      if (!salesQuoteDoc.name) {
         return;
       }
-      await router.push(`/edit/SalesQuote/${lead.name}`);
+      await router.push(`/edit/SalesQuote/${salesQuoteDoc.name}`);
     },
   };
 }
