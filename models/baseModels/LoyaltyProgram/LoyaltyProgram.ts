@@ -9,48 +9,59 @@ import { isPesa } from 'fyo/utils';
 
 export class LoyaltyProgram extends Doc {
   collectionRules?: CollectionRulesItems[];
+  expiryDuration?: number;
 
   async createLoyaltyPointEntry(doc: Invoice) {
-    const LoyaltyProgramData = (await this.fyo.doc.getDoc(
+    const loyaltyProgramDoc = (await this.fyo.doc.getDoc(
       ModelNameEnum.LoyaltyProgram,
       doc?.loyaltyProgram
     )) as LoyaltyProgram;
+    if (!loyaltyProgramDoc.isEnabled) {
+      return;
+    }
+    const expiryDate = new Date(Date.now());
+    expiryDate.setDate(
+      expiryDate.getDate() + (loyaltyProgramDoc.expiryDuration || 0)
+    );
+    let loyaltyProgramTier;
+    let loyaltyPoint: number;
 
-    if (LoyaltyProgramData && LoyaltyProgramData.isEnabled) {
-      const LoyaltyProgramExpiryDuration =
-        LoyaltyProgramData.expiryDuration as number;
-      const expiryDate = new Date(Date.now());
-      expiryDate.setDate(expiryDate.getDate() + LoyaltyProgramExpiryDuration);
+    if (doc.redeemLoyaltyPoints) {
+      const conversionFactor = loyaltyProgramDoc.conversionFactor as number;
+      let loyaltyAmount = this.fyo.pesa(
+        -(doc.loyaltyPoints || 0) * conversionFactor
+      );
 
-      const loyaltyProgramTier = this.getLoyaltyProgramTier(
-        LoyaltyProgramData,
+      loyaltyPoint = -(doc.loyaltyPoints || 0);
+      const newgrandTotal = loyaltyAmount.add(doc?.grandTotal || 0);
+      console.log(newgrandTotal, 'newgrandTotal');
+    } else {
+      loyaltyProgramTier = this.getLoyaltyProgramTier(
+        loyaltyProgramDoc,
         doc?.grandTotal as Money
       ) as CollectionRulesItems;
-
       if (!loyaltyProgramTier) {
         return;
       }
       const collectionFactor = loyaltyProgramTier.collectionFactor as number;
-      const loyaltyPoint: Money = doc?.grandTotal?.mul(
-        collectionFactor
-      ) as Money;
-
-      const newLoyaltyPointEntry = this.fyo.doc.getNewDoc(
-        ModelNameEnum.LoyaltyPointEntry,
-        {
-          loyaltyProgram: doc.loyaltyProgram,
-          customer: doc.party,
-          invoice: doc.name,
-          postingDate: new Date(Date.now()),
-          purchaseAmount: doc.grandTotal,
-          expiryDate: expiryDate,
-          loyaltyProgramTier: loyaltyProgramTier.tierName,
-          loyaltyPoints: loyaltyPoint.toString(),
-        }
-      );
-
-      return await newLoyaltyPointEntry.sync();
+      loyaltyPoint = Math.round(doc?.grandTotal?.float || 0) * collectionFactor;
     }
+
+    const newLoyaltyPointEntry = this.fyo.doc.getNewDoc(
+      ModelNameEnum.LoyaltyPointEntry,
+      {
+        loyaltyProgram: doc.loyaltyProgram,
+        customer: doc.party,
+        invoice: doc.name,
+        postingDate: new Date(Date.now()),
+        purchaseAmount: doc.grandTotal,
+        expiryDate: expiryDate,
+        loyaltyProgramTier: loyaltyProgramTier?.tierName,
+        loyaltyPoints: loyaltyPoint,
+      }
+    );
+
+    return await newLoyaltyPointEntry.sync();
   }
 
   getLoyaltyProgramTier(
@@ -60,21 +71,22 @@ export class LoyaltyProgram extends Doc {
     if (!loyaltyProgramData.collectionRules) {
       return;
     }
-    let nearestMinimumSpentRow: CollectionRulesItems | undefined;
+    let loyaltyProgramTier: CollectionRulesItems | undefined;
     for (const row of loyaltyProgramData.collectionRules) {
       if (isPesa(row.minimumTotalSpent)) {
         const minimumSpent = row.minimumTotalSpent;
-        if (minimumSpent.lte(grandTotal)) {
-          if (
-            !nearestMinimumSpentRow ||
-            minimumSpent.gt(nearestMinimumSpentRow.minimumTotalSpent as Money)
-          ) {
-            nearestMinimumSpentRow = row;
-          }
+        if (!minimumSpent.lte(grandTotal)) {
+          return;
+        }
+        if (
+          !loyaltyProgramTier ||
+          minimumSpent.gt(loyaltyProgramTier.minimumTotalSpent as Money)
+        ) {
+          loyaltyProgramTier = row;
         }
       }
-      return nearestMinimumSpentRow;
     }
+    return loyaltyProgramTier;
   }
 
   async removeLoyaltyPoint(doc: Doc) {

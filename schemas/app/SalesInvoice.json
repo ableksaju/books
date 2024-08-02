@@ -79,6 +79,19 @@
       "readOnly": true
     },
     {
+      "fieldname": "redeemLoyaltyPoints",
+      "fieldtype": "Check",
+      "default": false,
+      "label": "Redeem Loyalty Points",
+      "section": "Loyalty Points Redemption"
+    },
+    {
+      "fieldname": "loyaltyPoints",
+      "fieldtype": "Int",
+      "label": "Loyalty Points",
+      "section": "Loyalty Points Redemption"
+    },
+    {
       "fieldname": "isPOS",
       "fieldtype": "Check",
       "default": false,

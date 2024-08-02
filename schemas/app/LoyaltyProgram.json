@@ -1,7 +1,6 @@
 {
   "name": "LoyaltyProgram",
   "label": "Loyalty Program",
-  "isSingle": false,
   "naming": "manual",
 
   "fields": [
@@ -52,6 +51,12 @@
       "fieldtype": "Int",
       "default": 1,
       "required": true
+    },
+    {
+      "fieldname": "expenseAccount",
+      "label": "Expense Account",
+      "fieldtype": "Link",
+      "target": "Account"
     }
   ],
   "quickEditFields": [
@@ -61,11 +66,5 @@
     "conversionFactor",
     "expiryDuration"
   ],
-  "keywordFields": [
-    "name",
-    "fromDate",
-    "toDate",
-    "expiryDuration",
-    "conversionFactor"
-  ]
+  "keywordFields": ["name"]
 }

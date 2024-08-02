@@ -59,6 +59,7 @@ export abstract class Invoice extends Transactional {
   setDiscountAmount?: boolean;
   discountAmount?: Money;
   discountPercent?: number;
+  loyaltyPoints?: number;
   discountAfterTax?: boolean;
   stockNotTransferred?: number;
   loyaltyProgram?: string;
@@ -166,7 +167,6 @@ export abstract class Invoice extends Transactional {
 
   async afterSubmit() {
     await super.afterSubmit();
-
     // update outstanding amounts
     if (this.schemaName === ModelNameEnum.SalesQuote) {
       return;
@@ -197,18 +197,19 @@ export abstract class Invoice extends Transactional {
     }
 
     await this._updateIsItemsReturned();
-    if (this.loyaltyProgram) {
-      const doc = (await this.fyo.doc.getDoc(
-        ModelNameEnum.LoyaltyProgram,
-        this.loyaltyProgram
-      )) as LoyaltyProgram;
-      const currentDate = new Date(Date.now());
-      const fromDate = doc.fromDate as Date;
-      const toDate = doc.toDate as Date;
-      if (fromDate <= currentDate && toDate >= currentDate) {
-        await doc.createLoyaltyPointEntry(this);
-        await party.updateLoyaltyPoints();
-      }
+    if (!this.loyaltyProgram) {
+      return;
+    }
+    const doc = (await this.fyo.doc.getDoc(
+      ModelNameEnum.LoyaltyProgram,
+      this.loyaltyProgram
+    )) as LoyaltyProgram;
+    const currentDate = new Date(Date.now());
+    const fromDate = doc.fromDate as Date;
+    const toDate = doc.toDate as Date;
+    if (fromDate <= currentDate && toDate >= currentDate) {
+      await doc.createLoyaltyPointEntry(this);
+      await party.updateLoyaltyPoints();
     }
   }
 
@@ -738,6 +739,13 @@ export abstract class Invoice extends Transactional {
     backReference: () => !this.backReference,
     quote: () => !this.quote,
     loyaltyProgram: () => !this.loyaltyProgram,
+    loyaltyPoints: () =>
+      !this.fyo.singles.AccountingSettings?.enableLoyaltyProgram ||
+      !this.loyaltyProgram ||
+      !this.redeemLoyaltyPoints,
+    redeemLoyaltyPoints: () =>
+      !this.fyo.singles.AccountingSettings?.enableLoyaltyProgram ||
+      !this.loyaltyProgram,
     priceList: () =>
       !this.fyo.singles.AccountingSettings?.enablePriceList ||
       (!this.canEdit && !this.priceList),
