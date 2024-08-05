@@ -67,9 +67,7 @@ export class SalesInvoice extends Invoice {
       if ((value as number) <= 0) {
         throw new ValidationError(t`Points must be greather than 0`, false);
       }
-      if (
-        (value as number) > (partyDoc?.loyaltyPoints || 0)
-      ) {
+      if ((value as number) > (partyDoc?.loyaltyPoints || 0)) {
         throw new ValidationError(
           t`${this.party as string} only has ${
             partyDoc.loyaltyPoints as number
@@ -84,7 +82,9 @@ export class SalesInvoice extends Invoice {
       if (!this?.grandTotal) {
         return;
       }
-      let loyaltyPoint = ((value as number) || 0) * (loyaltyProgramDoc?.conversionFactor as number || 0);
+      const loyaltyPoint =
+        ((value as number) || 0) *
+        ((loyaltyProgramDoc?.conversionFactor as number) || 0);
       if (this.grandTotal?.lt(loyaltyPoint)) {
         throw new ValidationError(
           t`no need ${value as number} points to purchase this item`,

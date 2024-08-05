@@ -1,11 +1,12 @@
 import { Doc } from 'fyo/model/doc';
-import { ListViewSettings } from 'fyo/model/types';
+import { FiltersMap, ListViewSettings } from 'fyo/model/types';
 import { Money } from 'pesa';
 import { ModelNameEnum } from 'models/types';
 import { CollectionRulesItems } from '../CollectionRulesItems.ts/CollectionRulesItems';
 import { Invoice } from '../Invoice/Invoice';
 import { Party } from '../Party/Party';
 import { isPesa } from 'fyo/utils';
+import { AccountRootTypeEnum } from '../Account/types';
 
 export class LoyaltyProgram extends Doc {
   collectionRules?: CollectionRulesItems[];
@@ -28,7 +29,7 @@ export class LoyaltyProgram extends Doc {
 
     if (doc.redeemLoyaltyPoints) {
       const conversionFactor = loyaltyProgramDoc.conversionFactor as number;
-      let loyaltyAmount = this.fyo.pesa(
+      const loyaltyAmount = this.fyo.pesa(
         -(doc.loyaltyPoints || 0) * conversionFactor
       );
 
@@ -63,6 +64,12 @@ export class LoyaltyProgram extends Doc {
 
     return await newLoyaltyPointEntry.sync();
   }
+
+  static filters: FiltersMap = {
+    expenseAccount: () => ({
+      rootType: AccountRootTypeEnum.Liability,
+    }),
+  };
 
   getLoyaltyProgramTier(
     loyaltyProgramData: LoyaltyProgram,

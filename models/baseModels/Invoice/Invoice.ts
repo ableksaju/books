@@ -167,10 +167,10 @@ export abstract class Invoice extends Transactional {
 
   async afterSubmit() {
     await super.afterSubmit();
-    // update outstanding amounts
     if (this.schemaName === ModelNameEnum.SalesQuote) {
       return;
     }
+    // update outstanding amounts
     await this.fyo.db.update(this.schemaName, {
       name: this.name as string,
       outstandingAmount: this.baseGrandTotal!,
@@ -200,15 +200,15 @@ export abstract class Invoice extends Transactional {
     if (!this.loyaltyProgram) {
       return;
     }
-    const doc = (await this.fyo.doc.getDoc(
+    const loyaltyProgramDoc = (await this.fyo.doc.getDoc(
       ModelNameEnum.LoyaltyProgram,
       this.loyaltyProgram
     )) as LoyaltyProgram;
     const currentDate = new Date(Date.now());
-    const fromDate = doc.fromDate as Date;
-    const toDate = doc.toDate as Date;
+    const fromDate = loyaltyProgramDoc.fromDate as Date;
+    const toDate = loyaltyProgramDoc.toDate as Date;
     if (fromDate <= currentDate && toDate >= currentDate) {
-      await doc.createLoyaltyPointEntry(this);
+      await loyaltyProgramDoc.createLoyaltyPointEntry(this);
       await party.updateLoyaltyPoints();
     }
   }
@@ -590,12 +590,12 @@ export abstract class Invoice extends Transactional {
     },
     loyaltyProgram: {
       formula: async () => {
-        const LoyaltyPointsData = await this.fyo.doc.getDoc(
+        const partyDoc = await this.fyo.doc.getDoc(
           ModelNameEnum.Party,
           this.party
         );
-        const loyaltyProgram = LoyaltyPointsData?.loyaltyProgram as string;
-        return loyaltyProgram ?? '';
+        const loyaltyProgram = partyDoc?.loyaltyProgram as string;
+        return loyaltyProgram;
       },
       dependsOn: ['party'],
     },
