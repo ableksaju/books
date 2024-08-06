@@ -11,7 +11,14 @@ import {
 import { DEFAULT_CURRENCY } from 'fyo/utils/consts';
 import { ValidationError } from 'fyo/utils/errors';
 import { Transactional } from 'models/Transactional/Transactional';
-import { addItem, getExchangeRate, getNumberSeries } from 'models/helpers';
+import {
+  addItem,
+  createLoyaltyPointEntry,
+  getExchangeRate,
+  getNewGrandTotal,
+  getNumberSeries,
+  removeLoyaltyPoint,
+} from 'models/helpers';
 import { StockTransfer } from 'models/inventory/StockTransfer';
 import { validateBatch } from 'models/inventory/helpers';
 import { ModelNameEnum } from 'models/types';
@@ -165,21 +172,37 @@ export abstract class Invoice extends Transactional {
     await validateBatch(this);
   }
 
+  async getNewBaseGrandTotal() {
+    const totalLotaltyAmount = await getNewGrandTotal(
+      this.loyaltyProgram as string,
+      this.loyaltyPoints as number
+    );
+
+    return totalLotaltyAmount.sub(this.baseGrandTotal as Money).abs();
+  }
+
   async afterSubmit() {
     await super.afterSubmit();
     if (this.schemaName === ModelNameEnum.SalesQuote) {
       return;
     }
+    let newBaseGrandTotal: Money | undefined;
+
+    if (this.redeemLoyaltyPoints) {
+      newBaseGrandTotal = await this.getNewBaseGrandTotal();
+    }
+
     // update outstanding amounts
     await this.fyo.db.update(this.schemaName, {
       name: this.name as string,
-      outstandingAmount: this.baseGrandTotal!,
+      outstandingAmount: newBaseGrandTotal! || this.baseGrandTotal!,
     });
 
     const party = (await this.fyo.doc.getDoc(
       ModelNameEnum.Party,
       this.party
     )) as Party;
+
     await party.updateOutstandingAmount();
 
     if (this.makeAutoPayment && this.autoPaymentAccount) {
@@ -197,20 +220,7 @@ export abstract class Invoice extends Transactional {
     }
 
     await this._updateIsItemsReturned();
-    if (!this.loyaltyProgram) {
-      return;
-    }
-    const loyaltyProgramDoc = (await this.fyo.doc.getDoc(
-      ModelNameEnum.LoyaltyProgram,
-      this.loyaltyProgram
-    )) as LoyaltyProgram;
-    const currentDate = new Date(Date.now());
-    const fromDate = loyaltyProgramDoc.fromDate as Date;
-    const toDate = loyaltyProgramDoc.toDate as Date;
-    if (fromDate <= currentDate && toDate >= currentDate) {
-      await loyaltyProgramDoc.createLoyaltyPointEntry(this);
-      await party.updateLoyaltyPoints();
-    }
+    await this._createLoyaltyPointEntry();
   }
 
   async afterCancel() {
@@ -225,12 +235,7 @@ export abstract class Invoice extends Transactional {
     if (!this.loyaltyProgram) {
       return;
     }
-    const loyaltyProgramDoc = (await this.fyo.doc.getDoc(
-      ModelNameEnum.LoyaltyProgram,
-      this.loyaltyProgram
-    )) as LoyaltyProgram;
-
-    await loyaltyProgramDoc.removeLoyaltyPoint(this);
+    await removeLoyaltyPoint(this);
   }
 
   async _cancelPayments() {
@@ -555,6 +560,28 @@ export abstract class Invoice extends Transactional {
     await invoiceDoc.submit();
   }
 
+  async _createLoyaltyPointEntry() {
+    if (!this.loyaltyProgram) {
+      return;
+    }
+
+    const loyaltyProgramDoc = (await this.fyo.doc.getDoc(
+      ModelNameEnum.LoyaltyProgram,
+      this.loyaltyProgram
+    )) as LoyaltyProgram;
+
+    const currentDate = new Date(Date.now());
+    const fromDate = loyaltyProgramDoc.fromDate as Date;
+    const toDate = loyaltyProgramDoc.toDate as Date;
+
+    if (fromDate <= currentDate && toDate >= currentDate) {
+      const party = (await this.loadAndGetLink('party')) as Party;
+
+      await createLoyaltyPointEntry(this);
+      await party.updateLoyaltyPoints();
+    }
+  }
+
   async _validateHasLinkedReturnInvoices() {
     if (!this.name || this.isReturn || this.isQuote) {
       return;
@@ -594,8 +621,7 @@ export abstract class Invoice extends Transactional {
           ModelNameEnum.Party,
           this.party
         );
-        const loyaltyProgram = partyDoc?.loyaltyProgram as string;
-        return loyaltyProgram;
+        return partyDoc?.loyaltyProgram as string;
       },
       dependsOn: ['party'],
     },
@@ -639,12 +665,15 @@ export abstract class Invoice extends Transactional {
       dependsOn: ['grandTotal', 'exchangeRate'],
     },
     outstandingAmount: {
-      formula: () => {
+      formula: async () => {
         if (this.submitted) {
           return;
         }
+        if (this.redeemLoyaltyPoints) {
+          return await this.getNewBaseGrandTotal();
+        }
 
-        return this.baseGrandTotal!;
+        return this.baseGrandTotal;
       },
     },
     stockNotTransferred: {
@@ -739,13 +768,8 @@ export abstract class Invoice extends Transactional {
     backReference: () => !this.backReference,
     quote: () => !this.quote,
     loyaltyProgram: () => !this.loyaltyProgram,
-    loyaltyPoints: () =>
-      !this.fyo.singles.AccountingSettings?.enableLoyaltyProgram ||
-      !this.loyaltyProgram ||
-      !this.redeemLoyaltyPoints,
-    redeemLoyaltyPoints: () =>
-      !this.fyo.singles.AccountingSettings?.enableLoyaltyProgram ||
-      !this.loyaltyProgram,
+    loyaltyPoints: () => !this.redeemLoyaltyPoints,
+    redeemLoyaltyPoints: () => !this.loyaltyProgram,
     priceList: () =>
       !this.fyo.singles.AccountingSettings?.enablePriceList ||
       (!this.canEdit && !this.priceList),

@@ -9,6 +9,7 @@ export enum AccountRootTypeEnum  {
 export enum AccountTypeEnum {
   'Accumulated Depreciation' = 'Accumulated Depreciation',
   'Bank' = 'Bank',
+  'Loyalty Point Redemption' = 'Loyalty Point Redemption',
   'Cash' = 'Cash',
   'Chargeable' = 'Chargeable',
   'Cost of Goods Sold' = 'Cost of Goods Sold',

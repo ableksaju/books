@@ -54,11 +54,12 @@ export class Party extends Doc {
   }
 
   async updateLoyaltyPoints() {
-    const role = this.role as PartyRole;
     let loyaltyPoints = 0;
-    if (role === 'Customer' || role === 'Both') {
+
+    if (this.role === 'Customer' || this.role === 'Both') {
       loyaltyPoints = await this._getTotalLoyaltyPoints();
     }
+
     await this.setAndSync({ loyaltyPoints });
   }
 

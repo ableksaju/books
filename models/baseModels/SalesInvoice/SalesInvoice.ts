@@ -2,13 +2,18 @@ import { Fyo, t } from 'fyo';
 import { Action, ListViewSettings, ValidationMap } from 'fyo/model/types';
 import { LedgerPosting } from 'models/Transactional/LedgerPosting';
 import { ModelNameEnum } from 'models/types';
-import { getInvoiceActions, getTransactionStatusColumn } from '../../helpers';
+import {
+  getInvoiceActions,
+  getNewGrandTotal,
+  getTransactionStatusColumn,
+} from '../../helpers';
 import { Invoice } from '../Invoice/Invoice';
 import { SalesInvoiceItem } from '../SalesInvoiceItem/SalesInvoiceItem';
 import { DocValue } from 'fyo/core/types';
 import { ValidationError } from 'fyo/utils/errors';
 import { Party } from '../Party/Party';
 import { LoyaltyProgram } from '../LoyaltyProgram/LoyaltyProgram';
+import { AccountTypeEnum } from '../Account/types';
 
 export class SalesInvoice extends Invoice {
   items?: SalesInvoiceItem[];
@@ -28,6 +33,20 @@ export class SalesInvoice extends Invoice {
         continue;
       }
       await posting.credit(item.account!, item.amount!.mul(exchangeRate));
+    }
+
+    if (this.redeemLoyaltyPoints) {
+      const totalAmount = await getNewGrandTotal(
+        this.loyaltyProgram as string,
+        this.loyaltyPoints as number
+      );
+
+      await posting.debit(
+        AccountTypeEnum['Loyalty Point Redemption']!,
+        totalAmount
+      );
+
+      await posting.credit(this.account!, totalAmount);
     }
 
     if (this.taxes) {
@@ -50,7 +69,6 @@ export class SalesInvoice extends Invoice {
         await posting.debit(discountAccount, discountAmount.mul(exchangeRate));
       }
     }
-
     await posting.makeRoundOffEntry();
     return posting;
   }
@@ -64,9 +82,11 @@ export class SalesInvoice extends Invoice {
         ModelNameEnum.Party,
         this.party
       )) as Party;
+
       if ((value as number) <= 0) {
         throw new ValidationError(t`Points must be greather than 0`, false);
       }
+
       if ((value as number) > (partyDoc?.loyaltyPoints || 0)) {
         throw new ValidationError(
           t`${this.party as string} only has ${
@@ -75,16 +95,20 @@ export class SalesInvoice extends Invoice {
           false
         );
       }
+
       const loyaltyProgramDoc = (await this.fyo.doc.getDoc(
         ModelNameEnum.LoyaltyProgram,
         this.loyaltyProgram
       )) as LoyaltyProgram;
+
       if (!this?.grandTotal) {
         return;
       }
+
       const loyaltyPoint =
         ((value as number) || 0) *
         ((loyaltyProgramDoc?.conversionFactor as number) || 0);
+
       if (this.grandTotal?.lt(loyaltyPoint)) {
         throw new ValidationError(
           t`no need ${value as number} points to purchase this item`,
