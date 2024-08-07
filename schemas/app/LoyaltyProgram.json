@@ -56,7 +56,8 @@
       "fieldname": "expenseAccount",
       "label": "Expense Account",
       "fieldtype": "Link",
-      "target": "Account"
+      "target": "Account",
+      "required": true
     }
   ],
   "quickEditFields": [

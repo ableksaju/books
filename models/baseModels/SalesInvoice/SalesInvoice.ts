@@ -13,7 +13,6 @@ import { DocValue } from 'fyo/core/types';
 import { ValidationError } from 'fyo/utils/errors';
 import { Party } from '../Party/Party';
 import { LoyaltyProgram } from '../LoyaltyProgram/LoyaltyProgram';
-import { AccountTypeEnum } from '../Account/types';
 
 export class SalesInvoice extends Invoice {
   items?: SalesInvoiceItem[];
@@ -36,13 +35,18 @@ export class SalesInvoice extends Invoice {
     }
 
     if (this.redeemLoyaltyPoints) {
+      const loyaltyProgramDoc = (await this.fyo.doc.getDoc(
+        ModelNameEnum.LoyaltyProgram,
+        this.loyaltyProgram
+      )) as LoyaltyProgram;
+
       const totalAmount = await getNewGrandTotal(
         this.loyaltyProgram as string,
         this.loyaltyPoints as number
       );
 
       await posting.debit(
-        AccountTypeEnum['Loyalty Point Redemption']!,
+        loyaltyProgramDoc.expenseAccount as string,
         totalAmount
       );
 
