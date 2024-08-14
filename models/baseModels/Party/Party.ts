@@ -65,17 +65,22 @@ export class Party extends Doc {
 
   async _getTotalLoyaltyPoints() {
     const data = (await this.fyo.db.getAll(ModelNameEnum.LoyaltyPointEntry, {
-      fields: ['name', 'loyaltyPoints', 'expiryDate'],
+      fields: ['name', 'loyaltyPoints', 'expiryDate', 'postingDate'],
       filters: {
         customer: this.name as string,
       },
-    })) as { name: string; loyaltyPoints: number; expiryDate: Date }[];
+    })) as {
+      name: string;
+      loyaltyPoints: number;
+      expiryDate: Date;
+      postingDate: Date;
+    }[];
 
-    const today = new Date(Date.now());
     const totalLoyaltyPoints = data.reduce((total, entry) => {
-      if (entry.expiryDate > today) {
+      if (entry.expiryDate > entry.postingDate) {
         return total + entry.loyaltyPoints;
       }
+
       return total;
     }, 0);
 

@@ -2,7 +2,7 @@
   "name": "LoyaltyPointEntry",
   "label": "Loyalty Point Entry",
   "create": false,
-  "naming": "autoincrement",
+  "naming": "random",
   "fields": [
     {
       "label": "Entry No.",

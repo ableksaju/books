@@ -14,8 +14,8 @@ import { Transactional } from 'models/Transactional/Transactional';
 import {
   addItem,
   createLoyaltyPointEntry,
+  getAddedLPWithGrandTotal,
   getExchangeRate,
-  getNewGrandTotal,
   getNumberSeries,
   removeLoyaltyPoint,
 } from 'models/helpers';
@@ -172,8 +172,9 @@ export abstract class Invoice extends Transactional {
     await validateBatch(this);
   }
 
-  async getNewBaseGrandTotal() {
-    const totalLotaltyAmount = await getNewGrandTotal(
+  async getLPAddedBaseGrandTotal() {
+    const totalLotaltyAmount = await getAddedLPWithGrandTotal(
+      this.fyo,
       this.loyaltyProgram as string,
       this.loyaltyPoints as number
     );
@@ -185,24 +186,23 @@ export abstract class Invoice extends Transactional {
     await super.afterSubmit();
 
     if (this.isReturn) {
-      console.log(this, 'THIS');
-
       await this._removeLoyaltyPointEntry();
     }
 
     if (this.schemaName === ModelNameEnum.SalesQuote) {
       return;
     }
-    let newBaseGrandTotal: Money | undefined;
+
+    let lpAddedBaseGrandTotal: Money | undefined;
 
     if (this.redeemLoyaltyPoints) {
-      newBaseGrandTotal = await this.getNewBaseGrandTotal();
+      lpAddedBaseGrandTotal = await this.getLPAddedBaseGrandTotal();
     }
 
     // update outstanding amounts
     await this.fyo.db.update(this.schemaName, {
       name: this.name as string,
-      outstandingAmount: newBaseGrandTotal! || this.baseGrandTotal!,
+      outstandingAmount: lpAddedBaseGrandTotal! || this.baseGrandTotal!,
     });
 
     const party = (await this.fyo.doc.getDoc(
@@ -577,11 +577,11 @@ export abstract class Invoice extends Transactional {
       this.loyaltyProgram
     )) as LoyaltyProgram;
 
-    const currentDate = new Date(Date.now());
+    const expiryDate = this.date as Date;
     const fromDate = loyaltyProgramDoc.fromDate as Date;
     const toDate = loyaltyProgramDoc.toDate as Date;
 
-    if (fromDate <= currentDate && toDate >= currentDate) {
+    if (fromDate <= expiryDate && toDate >= expiryDate) {
       const party = (await this.loadAndGetLink('party')) as Party;
 
       await createLoyaltyPointEntry(this);
@@ -677,7 +677,7 @@ export abstract class Invoice extends Transactional {
           return;
         }
         if (this.redeemLoyaltyPoints) {
-          return await this.getNewBaseGrandTotal();
+          return await this.getLPAddedBaseGrandTotal();
         }
 
         return this.baseGrandTotal;

@@ -15,7 +15,6 @@ import { SalesQuote } from './baseModels/SalesQuote/SalesQuote';
 import { StockMovement } from './inventory/StockMovement';
 import { StockTransfer } from './inventory/StockTransfer';
 import { InvoiceStatus, ModelNameEnum } from './types';
-import { fyo } from 'src/initFyo';
 import { LoyaltyProgram } from './baseModels/LoyaltyProgram/LoyaltyProgram';
 import { CollectionRulesItems } from './baseModels/CollectionRulesItems/CollectionRulesItems';
 import { isPesa } from 'fyo/utils';
@@ -569,7 +568,7 @@ export async function addItem<M extends ModelsWithItems>(name: string, doc: M) {
 }
 
 export async function createLoyaltyPointEntry(doc: Invoice) {
-  const loyaltyProgramDoc = (await fyo.doc.getDoc(
+  const loyaltyProgramDoc = (await doc.fyo.doc.getDoc(
     ModelNameEnum.LoyaltyProgram,
     doc?.loyaltyProgram
   )) as LoyaltyProgram;
@@ -578,6 +577,7 @@ export async function createLoyaltyPointEntry(doc: Invoice) {
     return;
   }
   const expiryDate = new Date(Date.now());
+
   expiryDate.setDate(
     expiryDate.getDate() + (loyaltyProgramDoc.expiryDuration || 0)
   );
@@ -596,27 +596,30 @@ export async function createLoyaltyPointEntry(doc: Invoice) {
     if (!loyaltyProgramTier) {
       return;
     }
+
     const collectionFactor = loyaltyProgramTier.collectionFactor as number;
     loyaltyPoint = Math.round(doc?.grandTotal?.float || 0) * collectionFactor;
   }
 
-  const newLoyaltyPointEntry = fyo.doc.getNewDoc(
+  const newLoyaltyPointEntry = doc.fyo.doc.getNewDoc(
     ModelNameEnum.LoyaltyPointEntry,
     {
       loyaltyProgram: doc.loyaltyProgram,
       customer: doc.party,
       invoice: doc.name,
-      postingDate: new Date(Date.now()),
+      postingDate: doc.date,
       purchaseAmount: doc.grandTotal,
       expiryDate: expiryDate,
       loyaltyProgramTier: loyaltyProgramTier?.tierName,
       loyaltyPoints: loyaltyPoint,
     }
   );
+
   return await newLoyaltyPointEntry.sync();
 }
 
-export async function getNewGrandTotal(
+export async function getAddedLPWithGrandTotal(
+  fyo: Fyo,
   loyaltyProgram: string,
   loyaltyPoints: number
 ) {
@@ -660,23 +663,22 @@ export function getLoyaltyProgramTier(
 }
 
 export async function removeLoyaltyPoint(doc: Doc) {
-  console.log(doc,"DOC");
-  
-  const data = (await fyo.db.getAll(ModelNameEnum.LoyaltyPointEntry, {
+  const data = (await doc.fyo.db.getAll(ModelNameEnum.LoyaltyPointEntry, {
     fields: ['name', 'loyaltyPoints', 'expiryDate'],
     filters: {
       loyaltyProgram: doc.loyaltyProgram as string,
-      invoice: doc.isReturn ? doc.returnAgainst as string : doc.name as string,
+      invoice: doc.isReturn
+        ? (doc.returnAgainst as string)
+        : (doc.name as string),
     },
   })) as { name: string; loyaltyPoints: number; expiryDate: Date }[];
-console.log(data,"DATAAA");
 
-  const loyalityPointEntryDoc = await fyo.doc.getDoc(
+  const loyalityPointEntryDoc = await doc.fyo.doc.getDoc(
     ModelNameEnum.LoyaltyPointEntry,
     data[0].name
   );
 
-  const party = (await fyo.doc.getDoc(
+  const party = (await doc.fyo.doc.getDoc(
     ModelNameEnum.Party,
     doc.party as string
   )) as Party;

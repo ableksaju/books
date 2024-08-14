@@ -3,8 +3,8 @@ import { Action, ListViewSettings, ValidationMap } from 'fyo/model/types';
 import { LedgerPosting } from 'models/Transactional/LedgerPosting';
 import { ModelNameEnum } from 'models/types';
 import {
+  getAddedLPWithGrandTotal,
   getInvoiceActions,
-  getNewGrandTotal,
   getTransactionStatusColumn,
 } from '../../helpers';
 import { Invoice } from '../Invoice/Invoice';
@@ -40,7 +40,8 @@ export class SalesInvoice extends Invoice {
         this.loyaltyProgram
       )) as LoyaltyProgram;
 
-      const totalAmount = await getNewGrandTotal(
+      const totalAmount = await getAddedLPWithGrandTotal(
+        this.fyo,
         this.loyaltyProgram as string,
         this.loyaltyPoints as number
       );
@@ -88,15 +89,14 @@ export class SalesInvoice extends Invoice {
       )) as Party;
 
       if ((value as number) <= 0) {
-        throw new ValidationError(t`Points must be greather than 0`, false);
+        throw new ValidationError(t`Points must be greather than 0`);
       }
 
       if ((value as number) > (partyDoc?.loyaltyPoints || 0)) {
         throw new ValidationError(
           t`${this.party as string} only has ${
             partyDoc.loyaltyPoints as number
-          } points`,
-          false
+          } points`
         );
       }
 
@@ -115,8 +115,7 @@ export class SalesInvoice extends Invoice {
 
       if (this.grandTotal?.lt(loyaltyPoint)) {
         throw new ValidationError(
-          t`no need ${value as number} points to purchase this item`,
-          false
+          t`no need ${value as number} points to purchase this item`
         );
       }
     },

@@ -65,6 +65,7 @@
     "fromDate",
     "toDate",
     "conversionFactor",
+    "expenseAccount",
     "expiryDuration"
   ],
   "keywordFields": ["name"]
