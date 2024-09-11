@@ -42,9 +42,7 @@ const collectionRulesData = [
     collectionFactor: 0.5,
     minimumTotalSpent: 2000,
   },
-  { tierName: 'Gold',
-    collectionFactor: 0.5,
-    minimumTotalSpent: 3000 },
+  { tierName: 'Gold', collectionFactor: 0.5, minimumTotalSpent: 3000 },
 ];
 
 test('create test docs', async (t) => {
@@ -174,7 +172,10 @@ test('create Sales Invoice and verify loyalty points are created correctly', asy
     sinvDoc.loyaltyProgram
   )) as Party;
 
-  const selectedTier: CollectionRulesItems | undefined = getLoyaltyProgramTier(loyaltyProgramDoc, fyo.pesa(itemData.rate));
+  const selectedTier: CollectionRulesItems | undefined = getLoyaltyProgramTier(
+    loyaltyProgramDoc,
+    fyo.pesa(itemData.rate)
+  );
 
   t.equals(
     loyaltyPointEntryData?.loyaltyProgramTier,
