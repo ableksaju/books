@@ -14,6 +14,7 @@ import type {
   ConfigFilesWithModified,
   Creds,
   LanguageMap,
+  LocalSyncMode,
   SelectFileOptions,
   SelectFileReturn,
   TemplateFile,
@@ -129,6 +130,15 @@ const ipc = {
     await ipcRenderer.invoke(IPC_ACTIONS.SAVE_DATA, data, savePath);
   },
 
+  async runLocalServer(mode: LocalSyncMode, authToken: string, host?: string) {
+    await ipcRenderer.invoke(
+      IPC_ACTIONS.RUN_LOCAL_SERVER,
+      mode,
+      authToken,
+      host
+    );
+  },
+
   showItemInFolder(filePath: string) {
     ipcRenderer.send(IPC_MESSAGES.SHOW_ITEM_IN_FOLDER, filePath);
   },
@@ -200,6 +210,10 @@ const ipc = {
 
   registerConsoleLogListener(listener: IPCRendererListener) {
     ipcRenderer.on(IPC_CHANNELS.CONSOLE_LOG, listener);
+  },
+
+  handleServerResponse(callback: (value: any) => void) {
+    ipcRenderer.on('server-response', (_event, value) => callback(value));
   },
 
   db: {
