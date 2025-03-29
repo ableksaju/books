@@ -78,7 +78,7 @@ import { setLanguageMap } from './utils/language';
       return;
     }
 
-    const host = fyo.singles.LocalSyncSettings?.localServerAddress;
+    const host = fyo.singles.LocalSyncSettings?.serverAddress;
 
     console.log('LocalServerMode', localSyncMode);
 
