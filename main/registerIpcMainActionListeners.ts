@@ -10,7 +10,11 @@ import { autoUpdater } from 'electron-updater';
 import { constants } from 'fs';
 import fs from 'fs-extra';
 import path from 'path';
-import { SelectFileOptions, SelectFileReturn } from 'utils/types';
+import {
+  LocalSyncMode,
+  SelectFileOptions,
+  SelectFileReturn,
+} from 'utils/types';
 import databaseManager from '../backend/database/manager';
 import { emitMainProcessError } from '../backend/helpers';
 import { Main } from '../main';
@@ -117,6 +121,13 @@ export default function registerIpcMainActionListeners(main: Main) {
     IPC_ACTIONS.SAVE_DATA,
     async (_, data: string, savePath: string) => {
       return await fs.writeFile(savePath, data, { encoding: 'utf-8' });
+    }
+  );
+
+  ipcMain.handle(
+    IPC_ACTIONS.RUN_LOCAL_SERVER,
+    (_, syncMode: LocalSyncMode, authToken: string, host?: string) => {
+      main.startLocalWsServer(syncMode, authToken, host);
     }
   );
 

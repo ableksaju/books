@@ -21,6 +21,8 @@ import registerAutoUpdaterListeners from './main/registerAutoUpdaterListeners';
 import registerIpcMainActionListeners from './main/registerIpcMainActionListeners';
 import registerIpcMainMessageListeners from './main/registerIpcMainMessageListeners';
 import registerProcessListeners from './main/registerProcessListeners';
+import LocalWsServer from 'main/localWsServer';
+import { LocalSyncMode } from 'utils/types';
 
 export class Main {
   title = 'Frappe Books';
@@ -33,7 +35,10 @@ export class Main {
   WIDTH = 1200;
   HEIGHT = process.platform === 'win32' ? 826 : 800;
 
+  localWsServer: LocalWsServer | null;
+
   constructor() {
+    this.localWsServer = null;
     this.icon = this.isDevelopment
       ? path.resolve('./build/icon.png')
       : path.join(__dirname, 'icons', '512x512.png');
@@ -146,6 +151,16 @@ export class Main {
     this.winURL = `http://${host}:${port}/`;
   }
 
+  startLocalWsServer(
+    syncMode: LocalSyncMode,
+    authToken: string,
+    host?: string
+  ) {
+    this.localWsServer = new LocalWsServer();
+    this.localWsServer.mainWindow = this.mainWindow;
+    this.localWsServer.start(syncMode, authToken, host);
+  }
+
   registerAppProtocol() {
     protocol.registerBufferProtocol('app', bufferProtocolCallback);
 
@@ -160,6 +175,10 @@ export class Main {
 
     this.mainWindow.on('closed', () => {
       this.mainWindow = null;
+
+      if (this.localWsServer) {
+        this.localWsServer.stop();
+      }
     });
 
     this.mainWindow.webContents.on('did-fail-load', () => {

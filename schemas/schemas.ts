@@ -74,6 +74,8 @@ import POSSettings from './app/inventory/Point of Sale/POSSettings.json';
 import POSOpeningShift from './app/inventory/Point of Sale/POSOpeningShift.json';
 import POSClosingShift from './app/inventory/Point of Sale/POSClosingShift.json';
 import POSShiftAmounts from './app/inventory/Point of Sale/POSShiftAmounts.json';
+import LocalSyncSettings from './app/LocalSyncSettings.json';
+import LocalSyncQueue from './app/LocalSyncQueue.json';
 import { Schema, SchemaStub } from './types';
 
 export const coreSchemas: Schema[] = [
@@ -176,4 +178,7 @@ export const appSchemas: Schema[] | SchemaStub[] = [
   POSOpeningShift as Schema,
   POSClosingShift as Schema,
   POSShiftAmounts as Schema,
+
+  LocalSyncSettings as Schema,
+  LocalSyncQueue as Schema,
 ];
