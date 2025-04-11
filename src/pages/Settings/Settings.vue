@@ -128,6 +128,7 @@ export default defineComponent({
         ModelNameEnum.AccountingSettings,
         ModelNameEnum.InventorySettings,
         ModelNameEnum.Defaults,
+        ModelNameEnum.LocalSyncSettings,
         ModelNameEnum.POSSettings,
         ModelNameEnum.PrintSettings,
         ModelNameEnum.SystemSettings,
@@ -147,6 +148,7 @@ export default defineComponent({
         [ModelNameEnum.PrintSettings]: this.t`Print`,
         [ModelNameEnum.InventorySettings]: this.t`Inventory`,
         [ModelNameEnum.Defaults]: this.t`Defaults`,
+        [ModelNameEnum.LocalSyncSettings]: this.t`Local Sync Settings`,
         [ModelNameEnum.POSSettings]: this.t`POS Settings`,
         [ModelNameEnum.SystemSettings]: this.t`System`,
       };
@@ -161,6 +163,7 @@ export default defineComponent({
         ModelNameEnum.AccountingSettings,
         ModelNameEnum.InventorySettings,
         ModelNameEnum.Defaults,
+        ModelNameEnum.LocalSyncSettings,
         ModelNameEnum.POSSettings,
         ModelNameEnum.PrintSettings,
         ModelNameEnum.SystemSettings,

@@ -51,6 +51,7 @@ import { OpeningCash } from './inventory/Point of Sale/OpeningCash';
 import { POSSettings } from './inventory/Point of Sale/POSSettings';
 import { POSOpeningShift } from './inventory/Point of Sale/POSOpeningShift';
 import { POSClosingShift } from './inventory/Point of Sale/POSClosingShift';
+import { LocalSyncSettings } from './baseModels/LocalSyncSettings/LocalSyncSettings';
 
 export const models = {
   Account,
@@ -107,6 +108,8 @@ export const models = {
   POSSettings,
   POSOpeningShift,
   POSClosingShift,
+
+  LocalSyncSettings,
 } as ModelMap;
 
 export async function getRegionalModels(

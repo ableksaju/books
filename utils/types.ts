@@ -1,4 +1,4 @@
-import type { ConfigFile } from 'fyo/core/types';
+import type { ConfigFile, DocValueMap } from 'fyo/core/types';
 
 export type UnknownMap = Record<string, unknown>;
 export type Translation = { translation: string; context?: string };
@@ -78,4 +78,17 @@ interface ModMap {
 
 export interface ConfigFilesWithModified extends ConfigFile {
   modified: string;
+}
+
+export type LocalSyncMode= 'Client' | 'Server'
+
+export enum WsServerMethods {
+  PING= 'ping',
+  GET_DOC= 'get-doc',
+  PUSH_DOC= 'push-doc'
+}
+
+export interface WsRequest{
+  method: WsServerMethods,
+  payload?: DocValueMap,
 }
