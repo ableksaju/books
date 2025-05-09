@@ -186,6 +186,29 @@
       >
         dev mode
       </p>
+
+      <div class="flex p-1 text-xs flex items-center" v-if="showConnectionInfo">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          :class="showConnectionInfo ? 'text-green-800' : 'text-red-800'"
+        >
+          <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+          <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+          <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+          <line x1="12" y1="20" x2="12.01" y2="20"></line>
+        </svg>
+        <p class="ml-1 text-gray-600">
+          {{ showConnectionInfo ? 'Connected' : 'Disconncted' }}
+        </p>
+      </div>
     </div>
 
     <!-- Hide Sidebar Button -->
@@ -226,6 +249,7 @@ import router from '../router';
 import Icon from './Icon.vue';
 import Modal from './Modal.vue';
 import ShortcutsHelper from './ShortcutsHelper.vue';
+import Badge from './Badge.vue';
 
 const COMPONENT_NAME = 'Sidebar';
 
@@ -252,12 +276,14 @@ export default defineComponent({
       viewShortcuts: false,
       activeGroup: null,
       showDevMode: false,
+      showConnectionInfo: false,
     } as {
       companyName: string;
       groups: SidebarConfig;
       viewShortcuts: boolean;
       activeGroup: null | SidebarRoot;
       showDevMode: boolean;
+      showConnectionInfo: boolean;
     };
   },
   computed: {
@@ -283,6 +309,8 @@ export default defineComponent({
     this.shortcuts?.set(COMPONENT_NAME, ['F1'], () => this.openDocumentation());
 
     this.showDevMode = this.fyo.store.isDevelopment;
+    this.showConnectionInfo =
+      !!this.fyo.singles.AccountingSettings?.showConnectionInfo;
   },
   unmounted() {
     this.shortcuts?.delete(COMPONENT_NAME);

@@ -34,6 +34,7 @@ export enum IPC_ACTIONS {
   GET_TEMPLATES = 'get-templates',
   DELETE_FILE = 'delete-file',
   GET_DB_DEFAULT_PATH = 'get-db-default-path',
+  RUN_LOCAL_SERVER = 'run-local-server',
   // Database messages
   DB_CREATE = 'db-create',
   DB_CONNECT = 'db-connect',
