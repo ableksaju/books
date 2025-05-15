@@ -58,6 +58,36 @@ import { setLanguageMap } from './utils/language';
 
   await fyo.telemetry.logOpened();
   app.mount('body');
+
+  setTimeout(async () => {
+    const isLocalSyncEnabled =
+      !!fyo.singles.AccountingSettings?.enableLocalSync;
+
+    if (!isLocalSyncEnabled) {
+      return;
+    }
+
+    const authToken = fyo.singles.LocalSyncSettings?.authToken;
+    if (!authToken) {
+      return;
+    }
+
+    const localSyncMode = fyo.singles.LocalSyncSettings?.syncMode;
+    console.log('localSyncMode', localSyncMode);
+    if (!localSyncMode) {
+      return;
+    }
+
+    const host = fyo.singles.LocalSyncSettings?.serverAddress;
+
+    console.log('LocalServerMode', localSyncMode);
+
+    await window.ipc.runLocalServer(localSyncMode, authToken, host);
+
+    window.ipc.handleServerResponse((data) => {
+      console.log('data', data);
+    });
+  }, 5000);
 })();
 
 function setErrorHandlers(app: VueApp) {

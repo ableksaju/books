@@ -2,6 +2,7 @@ import { DateTime } from 'luxon';
 import countryInfo from '../fixtures/countryInfo.json';
 import { CUSTOM_EVENTS } from './messages';
 import { CountryInfoMap, UnexpectedLogObject } from './types';
+import { lookupService } from 'dns';
 
 export function getCountryInfo(): CountryInfoMap {
   // @ts-ignore
@@ -57,4 +58,13 @@ export function logUnexpected(detail: Partial<UnexpectedLogObject>) {
     detail,
   });
   window.dispatchEvent(event);
+}
+
+export async function checkConnectionToHost(host: string): Promise<boolean> {
+  try {
+    const response = await fetch(host);
+    return !!response.ok;
+  } catch (error) {
+    return false;
+  }
 }

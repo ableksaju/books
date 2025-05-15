@@ -1,3 +1,5 @@
+import { t } from 'fyo';
+import { DocValue } from 'fyo/core/types';
 import { Doc } from 'fyo/model/doc';
 import {
   ChangeArg,
@@ -8,8 +10,10 @@ import {
   ValidationMap,
 } from 'fyo/model/types';
 import { validateEmail } from 'fyo/model/validationFunction';
+import { ValidationError } from 'fyo/utils/errors';
 import { createDiscountAccount } from 'src/setup/setupInstance';
-import { getCountryInfo } from 'utils/misc';
+import { checkConnectionToHost, getCountryInfo } from 'utils/misc';
+import { LocalSyncMode } from 'utils/types';
 
 export class AccountingSettings extends Doc {
   enableDiscounting?: boolean;
